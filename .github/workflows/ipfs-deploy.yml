@@ -1,0 +1,38 @@
+name: Deploy to IPFS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: npm install @pinata/sdk
+
+      - name: Upload to Pinata
+        env:
+          PINATA_API_KEY: ${{ secrets.PINATA_API_KEY }}
+          PINATA_API_SECRET: ${{ secrets.PINATA_API_SECRET }}
+        run: |
+          node <<EOF
+          const pinataSDK = require('@pinata/sdk');
+          const fs = require('fs');
+          const pinata = pinataSDK(process.env.PINATA_API_KEY, process.env.PINATA_API_SECRET);
+
+          const readableStreamForFile = fs.createReadStream('index.html');
+          pinata.pinFileToIPFS(readableStreamForFile)
+              .then((result) => console.log('Uploaded:', result))
+              .catch((err) => console.error(err));
+          EOF
